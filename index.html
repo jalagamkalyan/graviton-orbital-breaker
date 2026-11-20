@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GRAVITON: ORBITAL BREAKER</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-void: #07080d;
+            --neon-cyan: #00f3ff;
+            --neon-gold: #ffbe0b;
+            --neon-magenta: #ff007f;
+            --neon-violet: #8338ec;
+        }
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-void);
+            color: #e2e8f0;
+            font-family: 'Space Grotesk', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        .font-display {
+            font-family: 'Orbitron', sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .glass-panel {
+            background: rgba(12, 15, 26, 0.78);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 243, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 243, 255, 0.05);
+        }
+        .glass-card {
+            background: linear-gradient(145deg, rgba(18, 23, 40, 0.9), rgba(10, 12, 22, 0.95));
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 12px 30px -5px rgba(0, 243, 255, 0.3), inset 0 0 20px rgba(0, 243, 255, 0.12);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.7), 0 0 22px rgba(0, 243, 255, 0.35);
+        }
+        .neon-text-gold {
+            text-shadow: 0 0 10px rgba(255, 190, 11, 0.7), 0 0 22px rgba(255, 190, 11, 0.35);
+        }
+        .btn-cyber {
+            background: linear-gradient(90deg, rgba(0, 243, 255, 0.15), rgba(131, 56, 236, 0.15));
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            transition: all 0.2s ease;
+        }
+        .btn-cyber:hover {
+            background: linear-gradient(90deg, rgba(0, 243, 255, 0.3), rgba(131, 56, 236, 0.3));
+            border-color: #00f3ff;
+            box-shadow: 0 0 16px rgba(0, 243, 255, 0.4);
+            transform: translateY(-1px);
+        }
+        .btn-cyber:active {
+            transform: translateY(1px);
+        }
+        /* Custom Scrollbar for Modal */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #07080d;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f3ff;
+        }
+    </style>
+</head>
+<body class="relative flex flex-col justify-between select-none">
+
+    <!-- TOP HUD BAR -->
+    <header class="fixed top-0 left-0 right-0 z-20 p-2 sm:p-4 pointer-events-none flex flex-wrap items-center justify-between gap-2">
+        <!-- Brand & Wave Info -->
+        <div class="glass-panel px-3.5 py-2 rounded-xl flex items-center gap-3 pointer-events-auto">
+            <div class="relative flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-400/40">
+                <div class="w-3 h-3 rounded-full bg-cyan-400 animate-ping absolute"></div>
+                <div class="w-3 h-3 rounded-full bg-cyan-300 relative"></div>
+            </div>
+            <div>
+                <h1 class="font-display text-xs sm:text-sm font-black tracking-wider text-cyan-300 neon-text-cyan">GRAVITON</h1>
+                <div class="flex items-center gap-2 text-[10px] sm:text-xs text-slate-400">
+                    <span>WAVE <strong id="hud-wave" class="text-white font-mono">1</strong></span>
+                    <span>•</span>
+                    <span id="hud-lives-label">SHIELDS: <strong id="hud-lives" class="text-amber-400 font-mono">3</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Score & Multiplier -->
+        <div class="glass-panel px-4 py-2 rounded-xl flex items-center gap-4 sm:gap-7 pointer-events-auto">
+            <div class="text-center">
+                <div class="text-[10px] uppercase tracking-widest text-slate-400">Score</div>
+                <div id="hud-score" class="font-display text-sm sm:text-xl font-bold text-white tracking-wider">000000</div>
+            </div>
+            <div class="h-7 w-[1px] bg-slate-700/70"></div>
+            <div class="text-center">
+                <div class="text-[10px] uppercase tracking-widest text-slate-400">Combo</div>
+                <div id="hud-combo" class="font-display text-sm sm:text-xl font-black text-amber-400 neon-text-gold transition-transform duration-150">1x</div>
+            </div>
+            <div class="hidden sm:block h-7 w-[1px] bg-slate-700/70"></div>
+            <div class="hidden sm:block text-center">
+                <div class="text-[10px] uppercase tracking-widest text-slate-400">Best</div>
+                <div id="hud-highscore" class="font-display text-sm sm:text-lg font-bold text-cyan-300/90">000000</div>
+            </div>
+        </div>
+
+        <!-- Right Controls: Mode, Audio, Research Info -->
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <button id="btn-mode" class="glass-panel btn-cyber px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-cyan-200" title="Switch Arcade / Zen Mode">
+                <span id="mode-indicator" class="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f3ff]"></span>
+                <span id="mode-text">ARCADE</span>
+            </button>
+
+            <button id="btn-audio" class="glass-panel btn-cyber p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-slate-200" title="Toggle Procedural Synth Audio">
+                <svg id="icon-sound-on" class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                </svg>
+                <svg id="icon-sound-off" class="w-4 h-4 text-rose-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+                </svg>
+                <span class="hidden md:inline" id="audio-text">SYNTH ON</span>
+            </button>
+
+            <button id="btn-research" class="glass-panel btn-cyber px-3 py-2 rounded-xl text-xs font-semibold text-amber-300 flex items-center gap-1.5" title="Game Design & Physics Research">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span class="hidden sm:inline">RESEARCH</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN FULLSCREEN CANVAS -->
+    <main class="relative w-full h-full flex items-center justify-center overflow-hidden">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- ACTIVE POWERUPS FLOATING PILLS -->
+        <div id="powerup-container" class="fixed top-20 left-4 z-10 flex flex-col gap-1.5 pointer-events-none"></div>
+
+        <!-- START / TITLE OVERLAY -->
+        <div id="overlay-start" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+            <div class="glass-panel max-w-lg w-full p-6 sm:p-8 rounded-2xl text-center border border-cyan-500/30 relative overflow-hidden">
+                <div class="absolute -top-24 -left-24 w-48 h-48 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-xs font-medium mb-3">
+                    <span>1978 SUPER BREAKOUT × 1979 ASTEROIDS GRAVITY</span>
+                </div>
+                <h2 class="font-display text-2xl sm:text-4xl font-black tracking-wider text-white neon-text-cyan mb-2">
+                    GRAVITON
+                </h2>
+                <p class="font-display text-xs sm:text-sm tracking-[0.25em] text-amber-400 uppercase mb-5">
+                    Orbital Singularity Breaker
+                </p>
+
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-6">
+                    Command a 360° orbital containment shield around an unstable Singularity. Shatter rotating crystalline rings, bend your energy orb’s trajectory with active gravitational pulls, and evolve your ship across waves.
+                </p>
+
+                <!-- Quick Controls Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left mb-6">
+                    <div class="bg-slate-900/80 border border-slate-700/70 p-3 rounded-xl">
+                        <div class="text-[11px] font-bold text-cyan-400 uppercase mb-1">1. Orbit Shield</div>
+                        <div class="text-xs text-slate-300">Move <strong>Mouse / Touch</strong> or press <strong>A/D / Arrows</strong> to orbit the perimeter.</div>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-700/70 p-3 rounded-xl">
+                        <div class="text-[11px] font-bold text-amber-400 uppercase mb-1">2. Gravity Well</div>
+                        <div class="text-xs text-slate-300">Hold <strong>Space / Left-Click</strong> to curve the orb toward the central core!</div>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-700/70 p-3 rounded-xl">
+                        <div class="text-[11px] font-bold text-pink-400 uppercase mb-1">3. Phase Pulse</div>
+                        <div class="text-xs text-slate-300">Press <strong>Shift / Right-Click</strong> to expand your shield &amp; super-boost hits.</div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button id="btn-start-arcade" class="btn-cyber px-6 py-3.5 rounded-xl font-display font-bold text-sm tracking-wider text-cyan-300 flex-1 shadow-lg">
+                        LAUNCH ARCADE MODE
+                    </button>
+                    <button id="btn-start-zen" class="glass-panel hover:border-amber-400/60 px-5 py-3.5 rounded-xl font-display font-bold text-xs tracking-wider text-amber-300 transition">
+                        ZEN FLOW MODE
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ROGUELITE WAVE UPGRADE OVERLAY -->
+        <div id="overlay-upgrade" class="fixed inset-0 z-30 hidden items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+            <div class="max-w-3xl w-full text-center">
+                <div class="inline-block px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-300 text-xs font-mono uppercase mb-2">
+                    Singularity Harmonized
+                </div>
+                <h2 class="font-display text-2xl sm:text-3xl font-black text-white neon-text-cyan mb-1">
+                    WAVE COMPLETE — SELECT AUGMENTATION
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400 mb-6">Choose 1 permanent orbital upgrade before the next crystalline ring materializes</p>
+
+                <div id="upgrade-cards-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                    <!-- Populated dynamically by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME OVER OVERLAY -->
+        <div id="overlay-gameover" class="fixed inset-0 z-30 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div class="glass-panel max-w-md w-full p-6 sm:p-8 rounded-2xl text-center border border-rose-500/40">
+                <div class="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/40 flex items-center justify-center mx-auto mb-3 text-rose-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <h2 class="font-display text-2xl sm:text-3xl font-black text-white mb-1">CONTAINMENT BREACHED</h2>
+                <p class="text-xs text-slate-400 mb-5">The Singularity collapsed after Wave <span id="go-wave" class="text-white font-bold">1</span></p>
+
+                <div class="grid grid-cols-2 gap-3 mb-6 bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+                    <div>
+                        <div class="text-[10px] uppercase text-slate-400">Final Score</div>
+                        <div id="go-score" class="font-display text-xl font-bold text-cyan-300">0</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] uppercase text-slate-400">High Score</div>
+                        <div id="go-high" class="font-display text-xl font-bold text-amber-400">0</div>
+                    </div>
+                </div>
+
+                <button id="btn-restart" class="btn-cyber w-full py-3.5 rounded-xl font-display font-bold text-sm tracking-wider text-cyan-300">
+                    REINITIALIZE ORBIT
+                </button>
+            </div>
+        </div>
+
+        <!-- RESEARCH & MECHANICS MODAL -->
+        <div id="overlay-research" class="fixed inset-0 z-40 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div class="glass-panel max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 sm:p-8 rounded-2xl border border-cyan-500/30 text-left">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-5">
+                    <div>
+                        <span class="text-[10px] font-mono uppercase tracking-widest text-amber-400">Retro-Modern Game Deconstruction</span>
+                        <h3 class="font-display text-lg sm:text-xl font-bold text-white">Historical Lineage &amp; Modern Physics</h3>
+                    </div>
+                    <button id="btn-close-research" class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="space-y-4 text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800">
+                        <h4 class="font-display text-xs font-bold text-cyan-400 uppercase mb-1">1. The Classic Roots (1976–1981)</h4>
+                        <p>
+                            Atari’s <strong>Breakout (1976)</strong> designed by Nolan Bushnell and Steve Wozniak pioneered tile-breaking ball deflection, while Taito’s <strong>Space Invaders (1978)</strong> and Atari’s <strong>Asteroids (1979)</strong> introduced radial thrust and central gravitational wells (originally seen in 1962’s <em>Spacewar!</em>). Traditional Breakout suffers from "late-stage hunting"—waiting passively for the ball to hit one final isolated brick.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800">
+                        <h4 class="font-display text-xs font-bold text-amber-400 uppercase mb-1">2. The Modern Twist: Active Orbital Gravity</h4>
+                        <p>
+                            <strong>Graviton</strong> eliminates passive waiting by transforming the arena into a <strong>360° polar coordinate field</strong>. The central Singularity exerts a gentle inverse-distance attraction ($F_g \propto 1/r$). When the player activates the <strong>Gravity Well Pulse</strong>, gravitational attraction quadruples, allowing mid-flight orbital slingshots around the core to snipe tough interior shards or curve an escaping ball back toward the shield.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800">
+                        <h4 class="font-display text-xs font-bold text-pink-400 uppercase mb-1">3. "Juice", Hit-Stop &amp; Procedural Synthesis</h4>
+                        <p>
+                            Modern arcade feel relies on multi-sensory feedback:
+                        </p>
+                        <ul class="list-disc list-inside mt-1.5 space-y-1 text-slate-400">
+                            <li><strong>Angular Momentum Transfer:</strong> Swinging your orbital paddle while striking the orb imparts tangential curveball spin.</li>
+                            <li><strong>Micro Hit-Stop &amp; Screen Shake:</strong> High-energy collisions trigger a 25ms frame freeze and directional trauma shake.</li>
+                            <li><strong>Web Audio Pentatonic Synth:</strong> Every shard collision synthesizes real-time harmonics on a D-Minor Pentatonic scale ($293.66\text{ Hz}$ upward), rising in pitch with your active combo multiplier.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-right">
+                    <button id="btn-resume-research" class="btn-cyber px-5 py-2.5 rounded-xl font-display text-xs font-bold text-cyan-300">
+                        RETURN TO ORBIT
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- BOTTOM HUD / ENERGY BARS & MOBILE CONTROLS -->
+    <footer class="fixed bottom-0 left-0 right-0 z-20 p-2 sm:p-4 pointer-events-none flex flex-col sm:flex-row items-center justify-between gap-2">
+        <!-- Gravity & Phase Energy Meters -->
+        <div class="glass-panel px-4 py-2.5 rounded-xl flex items-center gap-4 pointer-events-auto w-full sm:w-auto justify-between sm:justify-start">
+            <div class="flex-1 sm:w-44">
+                <div class="flex justify-between text-[10px] uppercase tracking-wider mb-1">
+                    <span class="text-cyan-300 font-semibold">Singularity Pull (Hold Space/Click)</span>
+                    <span id="hud-grav-pct" class="font-mono text-cyan-400">100%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-cyan-500/30">
+                    <div id="bar-gravity" class="h-full bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-75" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <div class="h-6 w-[1px] bg-slate-700/80"></div>
+
+            <div class="w-28 sm:w-36">
+                <div class="flex justify-between text-[10px] uppercase tracking-wider mb-1">
+                    <span class="text-pink-400 font-semibold">Phase Pulse (Shift)</span>
+                    <span id="hud-dash-status" class="font-mono text-pink-300">READY</span>
+                </div>
+                <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-pink-500/30">
+                    <div id="bar-dash" class="h-full bg-gradient-to-r from-pink-500 to-amber-400 transition-all duration-75" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Touch / Quick Action Buttons -->
+        <div class="flex items-center gap-2 pointer-events-auto w-full sm:w-auto justify-center">
+            <button id="btn-touch-grav" class="glass-panel btn-cyber flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-display font-bold text-cyan-300 active:scale-95">
+                HOLD: GRAVITY WELL
+            </button>
+            <button id="btn-touch-pulse" class="glass-panel btn-cyber flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-display font-bold text-pink-300 active:scale-95">
+                PHASE PULSE
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * ============================================================================
+         * GRAVITON: ORBITAL BREAKER
+         * Complete 360° Polar Physics Engine, Web Audio Synth, and Roguelite System
+         * ============================================================================
+         */
+
+        // --- 1. PROCEDURAL WEB AUDIO SYNTHESIZER (Zero External Assets) ---
+        class CosmicAudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+                this.droneOsc = null;
+                this.droneGain = null;
+                // D Minor Pentatonic Frequencies across octaves for pleasing harmonic chimes
+                this.pentatonic = [
+                    293.66, 349.23, 392.00, 440.00, 523.25,
+                    587.33, 698.46, 783.99, 880.00, 1046.50,
+                    1174.66, 1396.91
+                ];
+            }
+
+            init() {
+                if (this.ctx) {
+                    if (this.ctx.state === 'suspended') this.ctx.resume();
+                    return;
+                }
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                this.ctx = new AudioCtx();
+                this.startAmbientDrone();
+            }
+
+            startAmbientDrone() {
+                if (!this.ctx) return;
+                try {
+                    this.droneOsc = this.ctx.createOscillator();
+                    const subOsc = this.ctx.createOscillator();
+                    this.droneGain = this.ctx.createGain();
+                    const filter = this.ctx.createBiquadFilter();
+
+                    this.droneOsc.type = 'sawtooth';
+                    this.droneOsc.frequency.setValueAtTime(55, this.ctx.currentTime); // Low A1
+
+                    subOsc.type = 'sine';
+                    subOsc.frequency.setValueAtTime(27.5, this.ctx.currentTime); // Sub A0
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(140, this.ctx.currentTime);
+
+                    this.droneGain.gain.setValueAtTime(this.muted ? 0 : 0.04, this.ctx.currentTime);
+
+                    this.droneOsc.connect(filter);
+                    subOsc.connect(filter);
+                    filter.connect(this.droneGain);
+                    this.droneGain.connect(this.ctx.destination);
+
+                    this.droneOsc.start();
+                    subOsc.start();
+                } catch (e) {
+                    // Ignore audio autoplay blocks until interaction
+                }
+            }
+
+            setGravityModulation(isActive) {
+                if (!this.ctx || !this.droneOsc || this.muted) return;
+                const now = this.ctx.currentTime;
+                this.droneOsc.frequency.setTargetAtTime(isActive ? 73.42 : 55.0, now, 0.15);
+                this.droneGain.gain.setTargetAtTime(isActive ? 0.08 : 0.035, now, 0.1);
+            }
+
+            toggleMute() {
+                this.init();
+                this.muted = !this.muted;
+                if (this.droneGain && this.ctx) {
+                    this.droneGain.gain.setTargetAtTime(this.muted ? 0 : 0.04, this.ctx.currentTime, 0.1);
+                }
+                return this.muted;
+            }
+
+            playPaddleHit(isBoosted = false) {
+                if (this.muted || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = isBoosted ? 'triangle' : 'sine';
+                const startFreq = isBoosted ? 320 : 210;
+                osc.frequency.setValueAtTime(startFreq, now);
+                osc.frequency.exponentialRampToValueAtTime(startFreq * 1.8, now + 0.065);
+
+                gain.gain.setValueAtTime(0.22, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            }
+
+            playShardHit(comboIndex = 0, destroyed = true) {
+                if (this.muted || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const noteIdx = Math.min(comboIndex, this.pentatonic.length - 1);
+                const freq = this.pentatonic[noteIdx];
+
+                const osc = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = destroyed ? 'triangle' : 'sine';
+                osc2.type = 'sine';
+
+                osc.frequency.setValueAtTime(freq, now);
+                osc2.frequency.setValueAtTime(freq * 1.5, now); // Fifth harmonic
+
+                if (destroyed) {
+                    osc.frequency.exponentialRampToValueAtTime(freq * 1.04, now + 0.18);
+                }
+
+                gain.gain.setValueAtTime(destroyed ? 0.18 : 0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + (destroyed ? 0.24 : 0.09));
+
+                osc.connect(gain);
+                if (destroyed) osc2.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                if (destroyed) osc2.start(now);
+                osc.stop(now + 0.25);
+                if (destroyed) osc2.stop(now + 0.25);
+            }
+
+            playPhasePulse() {
+                if (this.muted || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.exponentialRampToValueAtTime(520, now + 0.18);
+
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.22);
+            }
+
+            playPowerup() {
+                if (this.muted || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.045);
+                    gain.gain.setValueAtTime(0.14, now + idx * 0.045);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.045 + 0.18);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.045);
+                    osc.stop(now + idx * 0.045 + 0.19);
+                });
+            }
+
+            playWaveClear() {
+                if (this.muted || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                // Sub bass drop + chord
+                const sub = this.ctx.createOscillator();
+                const subGain = this.ctx.createGain();
+                sub.type = 'sine';
+                sub.frequency.setValueAtTime(140, now);
+                sub.frequency.exponentialRampToValueAtTime(38, now + 0.6);
+                subGain.gain.setValueAtTime(0.3, now);
+                subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+                sub.connect(subGain);
+                subGain.connect(this.ctx.destination);
+                sub.start(now);
+                sub.stop(now + 0.65);
+            }
+        }
+
+        // --- 2. GAME CONSTANTS & STATE ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const audio = new CosmicAudioEngine();
+
+        const UPGRADE_POOL = [
+            {
+                id: 'wider_arc',
+                title: 'AEGIS EXPANSION',
+                desc: '+22% Permanent Orbital Shield Arc width for superior perimeter coverage.',
+                color: '#00f3ff',
+                apply: (g) => { g.upgrades.paddleArcMult *= 1.22; }
+            },
+            {
+                id: 'singularity_mass',
+                title: 'HAWKING CAPACITOR',
+                desc: '+35% Gravity Energy regeneration rate & stronger orbital curve attraction.',
+                color: '#a855f7',
+                apply: (g) => {
+                    g.upgrades.gravRegenMult *= 1.35;
+                    g.upgrades.gravPullMult *= 1.25;
+                }
+            },
+            {
+                id: 'volatile_shards',
+                title: 'SUPERNOVA FRAGMENTS',
+                desc: 'Destroyed shards have a 25% chance to detonate adjacent crystalline nodes.',
+                color: '#ffbe0b',
+                apply: (g) => { g.upgrades.explosiveChance += 0.25; }
+            },
+            {
+                id: 'binary_core',
+                title: 'BINARY LAUNCHER',
+                desc: 'Begin every new wave with 2 synchronized Energy Orbs in orbit.',
+                color: '#ff007f',
+                apply: (g) => { g.upgrades.startingBalls += 1; }
+            },
+            {
+                id: 'shield_recharge',
+                title: 'QUANTUM HULL REPAIR',
+                desc: 'Immediately restore +2 Containment Shield charges and boost max score multiplier.',
+                color: '#10b981',
+                apply: (g) => {
+                    g.lives += 2;
+                    g.upgrades.scoreMult *= 1.2;
+                }
+            }
+        ];
+
+        class GravitonGame {
+            constructor() {
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                this.cx = this.width / 2;
+                this.cy = this.height / 2;
+                this.arenaRadius = 300;
+                this.coreRadius = 26;
+
+                this.state = 'START'; // START, PLAYING, UPGRADE, GAMEOVER, PAUSED
+                this.mode = 'ARCADE'; // ARCADE or ZEN
+
+                this.score = 0;
+                this.highScore = parseInt(localStorage.getItem('graviton_highscore') || '0', 10);
+                this.wave = 1;
+                this.lives = 3;
+                this.combo = 0;
+                this.comboMult = 1;
+
+                // Roguelite permanent multipliers
+                this.upgrades = {
+                    paddleArcMult: 1.0,
+                    gravRegenMult: 1.0,
+                    gravPullMult: 1.0,
+                    explosiveChance: 0.08,
+                    startingBalls: 1,
+                    scoreMult: 1.0
+                };
+
+                // Temporary active powerups (in seconds)
+                this.activePowerups = {
+                    pierce: 0,
+                    wide: 0,
+                    slow: 0
+                };
+
+                // Player Orbital Shield (Paddle)
+                this.paddle = {
+                    angle: Math.PI / 2,
+                    targetAngle: Math.PI / 2,
+                    angularVel: 0,
+                    baseArc: 0.48, // Radians (~27.5 deg)
+                    currentArc: 0.48,
+                    dashTimer: 0,
+                    dashCooldown: 0
+                };
+
+                // Gravity Well Resource
+                this.gravityActive = false;
+                this.gravityEnergy = 100;
+
+                // Entities
+                this.balls = [];
+                this.shards = [];
+                this.particles = [];
+                this.shockwaves = [];
+                this.relics = [];
+                this.stars = [];
+
+                // Juice: Screen shake & Hit-stop
+                this.shakeIntensity = 0;
+                this.hitStopTimer = 0;
+                this.corePulsePhase = 0;
+
+                // Input state
+                this.keys = { left: false, right: false, space: false };
+                this.useMouseControl = false;
+
+                this.initStars();
+                this.resize();
+                this.bindEvents();
+                this.updateHUD();
+            }
+
+            initStars() {
+                this.stars = [];
+                for (let i = 0; i < 110; i++) {
+                    this.stars.push({
+                        angle: Math.random() * Math.PI * 2,
+                        distRatio: Math.random() * 1.4,
+                        size: Math.random() * 1.8 + 0.4,
+                        alpha: Math.random() * 0.65 + 0.15,
+                        speed: (Math.random() * 0.06 + 0.01) * (Math.random() < 0.5 ? 1 : -1)
+                    });
+                }
+            }
+
+            resize() {
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                canvas.width = this.width * dpr;
+                canvas.height = this.height * dpr;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+                this.cx = this.width / 2;
+                this.cy = this.height / 2;
+                const minDim = Math.min(this.width, this.height);
+                this.arenaRadius = Math.max(135, minDim * 0.39);
+                this.coreRadius = Math.max(18, this.arenaRadius * 0.085);
+            }
+
+            bindEvents() {
+                window.addEventListener('resize', () => this.resize());
+
+                // Mouse movement
+                window.addEventListener('mousemove', (e) => {
+                    if (this.state !== 'PLAYING') return;
+                    this.useMouseControl = true;
+                    const dx = e.clientX - this.cx;
+                    const dy = e.clientY - this.cy;
+                    this.paddle.targetAngle = Math.atan2(dy, dx);
+                });
+
+                // Mouse clicks for Gravity Pull & Phase Dash
+                canvas.addEventListener('mousedown', (e) => {
+                    audio.init();
+                    if (this.state !== 'PLAYING') return;
+                    if (e.button === 0) {
+                        this.gravityActive = true;
+                        this.releaseAttachedBalls();
+                    } else if (e.button === 2) {
+                        this.triggerPhasePulse();
+                    }
+                });
+
+                window.addEventListener('mouseup', (e) => {
+                    if (e.button === 0) this.gravityActive = false;
+                });
+
+                canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+                // Touch support
+                canvas.addEventListener('touchstart', (e) => {
+                    audio.init();
+                    if (this.state !== 'PLAYING') return;
+                    const touch = e.touches[0];
+                    this.useMouseControl = true;
+                    this.paddle.targetAngle = Math.atan2(touch.clientY - this.cy, touch.clientX - this.cx);
+                    this.releaseAttachedBalls();
+                }, { passive: true });
+
+                canvas.addEventListener('touchmove', (e) => {
+                    if (this.state !== 'PLAYING') return;
+                    const touch = e.touches[0];
+                    this.useMouseControl = true;
+                    this.paddle.targetAngle = Math.atan2(touch.clientY - this.cy, touch.clientX - this.cx);
+                }, { passive: true });
+
+                // Keyboard controls
+                window.addEventListener('keydown', (e) => {
+                    if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+                        this.keys.left = true;
+                        this.useMouseControl = false;
+                    }
+                    if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+                        this.keys.right = true;
+                        this.useMouseControl = false;
+                    }
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        audio.init();
+                        if (this.state === 'PLAYING') {
+                            this.gravityActive = true;
+                            this.releaseAttachedBalls();
+                        }
+                    }
+                    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+                        e.preventDefault();
+                        if (this.state === 'PLAYING') this.triggerPhasePulse();
+                    }
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.keys.left = false;
+                    if (e.code === 'ArrowRight' || e.code === 'KeyD') this.keys.right = false;
+                    if (e.code === 'Space') this.gravityActive = false;
+                });
+
+                // UI Buttons
+                document.getElementById('btn-start-arcade').addEventListener('click', () => {
+                    audio.init();
+                    this.startNewGame('ARCADE');
+                });
+                document.getElementById('btn-start-zen').addEventListener('click', () => {
+                    audio.init();
+                    this.startNewGame('ZEN');
+                });
+                document.getElementById('btn-restart').addEventListener('click', () => {
+                    audio.init();
+                    this.startNewGame(this.mode);
+                });
+
+                document.getElementById('btn-mode').addEventListener('click', () => {
+                    this.mode = this.mode === 'ARCADE' ? 'ZEN' : 'ARCADE';
+                    this.updateHUD();
+                });
+
+                document.getElementById('btn-audio').addEventListener('click', () => {
+                    const muted = audio.toggleMute();
+                    document.getElementById('icon-sound-on').classList.toggle('hidden', muted);
+                    document.getElementById('icon-sound-off').classList.toggle('hidden', !muted);
+                    document.getElementById('audio-text').textContent = muted ? 'MUTED' : 'SYNTH ON';
+                });
+
+                // Research Modal
+                const researchModal = document.getElementById('overlay-research');
+                document.getElementById('btn-research').addEventListener('click', () => {
+                    if (this.state === 'PLAYING') this.state = 'PAUSED';
+                    researchModal.classList.remove('hidden');
+                    researchModal.classList.add('flex');
+                });
+                const closeResearch = () => {
+                    researchModal.classList.add('hidden');
+                    researchModal.classList.remove('flex');
+                    if (this.state === 'PAUSED') this.state = 'PLAYING';
+                };
+                document.getElementById('btn-close-research').addEventListener('click', closeResearch);
+                document.getElementById('btn-resume-research').addEventListener('click', closeResearch);
+
+                // Mobile Footer Buttons
+                const btnGrav = document.getElementById('btn-touch-grav');
+                btnGrav.addEventListener('mousedown', () => { this.gravityActive = true; this.releaseAttachedBalls(); });
+                btnGrav.addEventListener('mouseup', () => { this.gravityActive = false; });
+                btnGrav.addEventListener('touchstart', (e) => { e.preventDefault(); this.gravityActive = true; this.releaseAttachedBalls(); });
+                btnGrav.addEventListener('touchend', (e) => { e.preventDefault(); this.gravityActive = false; });
+
+                document.getElementById('btn-touch-pulse').addEventListener('click', () => {
+                    this.triggerPhasePulse();
+                });
+            }
+
+            startNewGame(selectedMode) {
+                this.mode = selectedMode;
+                this.score = 0;
+                this.wave = 1;
+                this.lives = 3;
+                this.combo = 0;
+                this.comboMult = 1;
+                this.gravityEnergy = 100;
+
+                this.upgrades = {
+                    paddleArcMult: 1.0,
+                    gravRegenMult: 1.0,
+                    gravPullMult: 1.0,
+                    explosiveChance: 0.08,
+                    startingBalls: 1,
+                    scoreMult: 1.0
+                };
+
+                this.activePowerups = { pierce: 0, wide: 0, slow: 0 };
+                this.particles = [];
+                this.shockwaves = [];
+                this.relics = [];
+
+                document.getElementById('overlay-start').classList.add('hidden');
+                document.getElementById('overlay-gameover').classList.add('hidden');
+                document.getElementById('overlay-gameover').classList.remove('flex');
+                document.getElementById('overlay-upgrade').classList.add('hidden');
+                document.getElementById('overlay-upgrade').classList.remove('flex');
+
+                this.setupWave(this.wave);
+                this.state = 'PLAYING';
+                this.updateHUD();
+            }
+
+            setupWave(waveNum) {
+                this.shards = [];
+                this.relics = [];
+                this.balls = [];
+
+                // Generate Concentric Rings of Crystalline Shards
+                const ringCount = Math.min(2 + Math.floor((waveNum + 1) / 2), 5);
+                const palettes = ['#00f3ff', '#ffbe0b', '#ff007f', '#a855f7', '#10b981'];
+
+                for (let r = 0; r < ringCount; r++) {
+                    const radiusNorm = 0.24 + r * 0.115; // Fraction of arenaRadius
+                    const segments = 8 + r * 4;
+                    const gapAngle = 0.035;
+                    const span = (Math.PI * 2) / segments;
+                    const rotSpeed = (r % 2 === 0 ? 1 : -1) * (0.18 + waveNum * 0.03) * (1 - r * 0.12);
+                    const hp = r === 0 && waveNum >= 2 ? 2 : 1;
+                    const color = palettes[(r + waveNum - 1) % palettes.length];
+
+                    for (let s = 0; s < segments; s++) {
+                        // Create geometric gaps on higher waves for orbital channels
+                        if (waveNum > 1 && r === ringCount - 1 && s % 4 === 0) continue;
+
+                        this.shards.push({
+                            ringIndex: r,
+                            radiusNorm: radiusNorm,
+                            thicknessNorm: 0.055,
+                            startAngle: s * span + gapAngle / 2,
+                            arcSpan: span - gapAngle,
+                            rotSpeed: rotSpeed,
+                            hp: hp,
+                            maxHp: hp,
+                            color: color,
+                            hitFlash: 0
+                        });
+                    }
+                }
+
+                // Spawn starting balls
+                for (let i = 0; i < this.upgrades.startingBalls; i++) {
+                    this.spawnBall(i === 0);
+                }
+
+                this.shockwaves.push({
+                    x: this.cx,
+                    y: this.cy,
+                    r: this.coreRadius,
+                    maxR: this.arenaRadius * 1.05,
+                    color: '#00f3ff',
+                    alpha: 0.8
+                });
+            }
+
+            spawnBall(attached = true, customAngle = null) {
+                const angle = customAngle !== null ? customAngle : this.paddle.angle;
+                const dist = this.arenaRadius - 14;
+                const speed = this.arenaRadius * 1.18;
+                const inwardAngle = angle + Math.PI + (Math.random() - 0.5) * 0.25;
+
+                this.balls.push({
+                    x: this.cx + Math.cos(angle) * dist,
+                    y: this.cy + Math.sin(angle) * dist,
+                    vx: Math.cos(inwardAngle) * speed,
+                    vy: Math.sin(inwardAngle) * speed,
+                    radius: 6.5,
+                    attached: attached,
+                    offsetAngle: (Math.random() - 0.5) * 0.12,
+                    trail: []
+                });
+            }
+
+            releaseAttachedBalls() {
+                let launched = false;
+                const baseSpeed = this.arenaRadius * (1.22 + this.wave * 0.04);
+                for (const b of this.balls) {
+                    if (b.attached) {
+                        b.attached = false;
+                        const aimAngle = this.paddle.angle + Math.PI + (this.paddle.angularVel * 0.12);
+                        b.vx = Math.cos(aimAngle) * baseSpeed;
+                        b.vy = Math.sin(aimAngle) * baseSpeed;
+                        launched = true;
+                    }
+                }
+                if (launched) audio.playPaddleHit(true);
+            }
+
+            triggerPhasePulse() {
+                if (this.paddle.dashCooldown > 0 || this.state !== 'PLAYING') return;
+                this.paddle.dashTimer = 0.35; // 350ms active expansion
+                this.paddle.dashCooldown = 2.4; // 2.4s cooldown
+                this.releaseAttachedBalls();
+                audio.playPhasePulse();
+
+                const px = this.cx + Math.cos(this.paddle.angle) * this.arenaRadius;
+                const py = this.cy + Math.sin(this.paddle.angle) * this.arenaRadius;
+                this.shockwaves.push({
+                    x: px,
+                    y: py,
+                    r: 10,
+                    maxR: 110,
+                    color: '#ff007f',
+                    alpha: 0.9
+                });
+            }
+
+            // Normalize angle into [-PI, PI]
+            normalizeAngle(a) {
+                while (a > Math.PI) a -= Math.PI * 2;
+                while (a < -Math.PI) a += Math.PI * 2;
+                return a;
+            }
+
+            // Shortest angular difference between a and b
+            angleDiff(a, b) {
+                return this.normalizeAngle(a - b);
+            }
+
+            update(dt) {
+                this.corePulsePhase += dt * 3.5;
+
+                // Starfield rotation
+                for (const s of this.stars) {
+                    s.angle += s.speed * dt;
+                }
+
+                if (this.state !== 'PLAYING') return;
+
+                // Hit-stop micro-freeze for impact juice
+                if (this.hitStopTimer > 0) {
+                    this.hitStopTimer -= dt;
+                    return;
+                }
+
+                // Decay screen shake
+                if (this.shakeIntensity > 0) {
+                    this.shakeIntensity = Math.max(0, this.shakeIntensity - dt * 28);
+                }
+
+                // Update active temporary powerups
+                let powerupChanged = false;
+                for (const key of ['pierce', 'wide', 'slow']) {
+                    if (this.activePowerups[key] > 0) {
+                        this.activePowerups[key] = Math.max(0, this.activePowerups[key] - dt);
+                        if (this.activePowerups[key] === 0) powerupChanged = true;
+                    }
+                }
+                if (powerupChanged) this.renderPowerupPills();
+
+                // Update Paddle Arc & Cooldowns
+                if (this.paddle.dashTimer > 0) this.paddle.dashTimer = Math.max(0, this.paddle.dashTimer - dt);
+                if (this.paddle.dashCooldown > 0) this.paddle.dashCooldown = Math.max(0, this.paddle.dashCooldown - dt);
+
+                const wideBonus = this.activePowerups.wide > 0 ? 1.4 : 1.0;
+                const dashBonus = this.paddle.dashTimer > 0 ? 1.45 : 1.0;
+                this.paddle.currentArc = Math.min(Math.PI * 0.85, this.paddle.baseArc * this.upgrades.paddleArcMult * wideBonus * dashBonus);
+
+                // Update Paddle Position & Angular Velocity
+                const prevAngle = this.paddle.angle;
+                if (this.useMouseControl) {
+                    const diff = this.angleDiff(this.paddle.targetAngle, this.paddle.angle);
+                    this.paddle.angle = this.normalizeAngle(this.paddle.angle + diff * Math.min(1, dt * 18));
+                } else {
+                    const rotSpeed = 3.6;
+                    if (this.keys.left) this.paddle.angle -= rotSpeed * dt;
+                    if (this.keys.right) this.paddle.angle += rotSpeed * dt;
+                    this.paddle.angle = this.normalizeAngle(this.paddle.angle);
+                }
+                this.paddle.angularVel = this.angleDiff(this.paddle.angle, prevAngle) / Math.max(dt, 0.001);
+
+                // Update Gravity Energy
+                const canPull = this.gravityActive && this.gravityEnergy > 1;
+                if (canPull) {
+                    this.gravityEnergy = Math.max(0, this.gravityEnergy - dt * 36);
+                    if (this.gravityEnergy === 0) this.gravityActive = false;
+                } else {
+                    this.gravityEnergy = Math.min(100, this.gravityEnergy + dt * 22 * this.upgrades.gravRegenMult);
+                }
+                audio.setGravityModulation(canPull);
+
+                // Rotate Crystalline Shards
+                for (const shard of this.shards) {
+                    shard.startAngle = this.normalizeAngle(shard.startAngle + shard.rotSpeed * dt);
+                    if (shard.hitFlash > 0) shard.hitFlash = Math.max(0, shard.hitFlash - dt * 5);
+                }
+
+                // Update Balls
+                const targetSpeed = this.arenaRadius * (1.22 + this.wave * 0.045) * (this.activePowerups.slow > 0 ? 0.62 : 1.0);
+
+                for (let i = this.balls.length - 1; i >= 0; i--) {
+                    const b = this.balls[i];
+
+                    if (b.attached) {
+                        const attachAngle = this.paddle.angle + b.offsetAngle;
+                        const attachDist = this.arenaRadius - 12;
+                        b.x = this.cx + Math.cos(attachAngle) * attachDist;
+                        b.y = this.cy + Math.sin(attachAngle) * attachDist;
+                        b.trail = [];
+                        continue;
+                    }
+
+                    // Store ribbon trail
+                    b.trail.push({ x: b.x, y: b.y });
+                    if (b.trail.length > 18) b.trail.shift();
+
+                    // Sub-step ball physics for crisp collision detection
+                    const subSteps = 3;
+                    const subDt = dt / subSteps;
+
+                    for (let step = 0; step < subSteps; step++) {
+                        const dxCore = this.cx - b.x;
+                        const dyCore = this.cy - b.y;
+                        const distToCore = Math.hypot(dxCore, dyCore) || 1;
+                        const nxCore = dxCore / distToCore;
+                        const nyCore = dyCore / distToCore;
+
+                        // 1. Orbital Singularity Gravity Pull
+                        const baseGrav = this.arenaRadius * 0.28;
+                        const activeGrav = canPull ? this.arenaRadius * 2.55 * this.upgrades.gravPullMult : baseGrav;
+                        // Inverse distance curve clamped so it feels controllable and responsive
+                        const pullFactor = Math.min(2.2, (this.arenaRadius * 0.55) / Math.max(distToCore, 45));
+                        b.vx += nxCore * activeGrav * pullFactor * subDt;
+                        b.vy += nyCore * activeGrav * pullFactor * subDt;
+
+                        // Regulate velocity magnitude
+                        const curSpeed = Math.hypot(b.vx, b.vy) || 1;
+                        const maxAllowed = targetSpeed * (canPull ? 1.35 : 1.15);
+                        const minAllowed = targetSpeed * 0.85;
+                        if (curSpeed > maxAllowed) {
+                            b.vx = (b.vx / curSpeed) * maxAllowed;
+                            b.vy = (b.vy / curSpeed) * maxAllowed;
+                        } else if (curSpeed < minAllowed) {
+                            b.vx = (b.vx / curSpeed) * minAllowed;
+                            b.vy = (b.vy / curSpeed) * minAllowed;
+                        }
+
+                        b.x += b.vx * subDt;
+                        b.y += b.vy * subDt;
+
+                        // 2. Central Singularity Core Bounce
+                        const newDistCore = Math.hypot(b.x - this.cx, b.y - this.cy);
+                        if (newDistCore < this.coreRadius + b.radius) {
+                            const outX = (b.x - this.cx) / (newDistCore || 1);
+                            const outY = (b.y - this.cy) / (newDistCore || 1);
+                            b.x = this.cx + outX * (this.coreRadius + b.radius + 1);
+                            b.y = this.cy + outY * (this.coreRadius + b.radius + 1);
+
+                            // Reflect outward with subtle energy boost
+                            const dot = b.vx * outX + b.vy * outY;
+                            if (dot < 0) {
+                                b.vx = (b.vx - 2 * dot * outX) * 1.06;
+                                b.vy = (b.vy - 2 * dot * outY) * 1.06;
+                            }
+                            this.spawnParticles(b.x, b.y, '#a855f7', 8);
+                        }
+
+                        // 3. Crystalline Shard Collisions (Polar coordinate test)
+                        this.checkShardCollisions(b);
+                    }
+
+                    // 4. Outer Orbital Perimeter / Paddle Shield Collision
+                    const rx = b.x - this.cx;
+                    const ry = b.y - this.cy;
+                    const distFromCenter = Math.hypot(rx, ry);
+                    const ballAngle = Math.atan2(ry, rx);
+
+                    if (distFromCenter >= this.arenaRadius - b.radius - 4 && distFromCenter <= this.arenaRadius + 16) {
+                        const radialVel = (b.vx * rx + b.vy * ry) / (distFromCenter || 1);
+                        if (radialVel > 0) {
+                            const angularDelta = Math.abs(this.angleDiff(ballAngle, this.paddle.angle));
+                            const halfArc = this.paddle.currentArc / 2 + 0.04;
+
+                            if (angularDelta <= halfArc) {
+                                // PADDLE HIT!
+                                const hitOffset = this.angleDiff(ballAngle, this.paddle.angle) / halfArc; // -1 to 1
+                                const inwardNormal = ballAngle + Math.PI;
+                                // Deflect angle based on where it struck the curved paddle + paddle angular momentum
+                                const spinInfluence = Math.max(-0.38, Math.min(0.38, this.paddle.angularVel * 0.045));
+                                const reflectAngle = inwardNormal - hitOffset * 0.55 + spinInfluence;
+
+                                const isBoosted = this.paddle.dashTimer > 0;
+                                const bounceSpeed = targetSpeed * (isBoosted ? 1.45 : 1.05);
+
+                                b.vx = Math.cos(reflectAngle) * bounceSpeed;
+                                b.vy = Math.sin(reflectAngle) * bounceSpeed;
+
+                                // Snap inside ring
+                                const safeDist = this.arenaRadius - b.radius - 5;
+                                b.x = this.cx + Math.cos(ballAngle) * safeDist;
+                                b.y = this.cy + Math.sin(ballAngle) * safeDist;
+
+                                this.spawnParticles(b.x, b.y, isBoosted ? '#ff007f' : '#00f3ff', isBoosted ? 18 : 10);
+                                audio.playPaddleHit(isBoosted);
+                                if (isBoosted) this.shakeIntensity = 6;
+                            } else if (this.mode === 'ZEN' && distFromCenter >= this.arenaRadius) {
+                                // ZEN MODE: Soft containment rebound, resets combo
+                                const inwardNormal = ballAngle + Math.PI;
+                                b.vx = Math.cos(inwardNormal) * targetSpeed * 0.9;
+                                b.vy = Math.sin(inwardNormal) * targetSpeed * 0.9;
+                                b.x = this.cx + Math.cos(ballAngle) * (this.arenaRadius - b.radius - 2);
+                                b.y = this.cy + Math.sin(ballAngle) * (this.arenaRadius - b.radius - 2);
+                                this.resetCombo();
+                                this.spawnParticles(b.x, b.y, '#64748b', 8);
+                                audio.playPaddleHit(false);
+                            }
+                        }
+                    }
+
+                    // 5. Out of bounds check (Arcade Mode)
+                    if (distFromCenter > this.arenaRadius + 42) {
+                        this.balls.splice(i, 1);
+                    }
+                }
+
+                // Handle lost all balls
+                if (this.balls.length === 0) {
+                    this.resetCombo();
+                    this.lives--;
+                    this.shakeIntensity = 12;
+                    if (this.lives <= 0 && this.mode === 'ARCADE') {
+                        this.triggerGameOver();
+                    } else {
+                        this.spawnBall(true);
+                    }
+                }
+
+                // Update Floating Power-Up Relics
+                for (let i = this.relics.length - 1; i >= 0; i--) {
+                    const rel = this.relics[i];
+                    rel.x += rel.vx * dt;
+                    rel.y += rel.vy * dt;
+                    rel.rot += dt * 3;
+
+                    const rx = rel.x - this.cx;
+                    const ry = rel.y - this.cy;
+                    const dist = Math.hypot(rx, ry);
+                    const angle = Math.atan2(ry, rx);
+
+                    if (dist >= this.arenaRadius - 18 && dist <= this.arenaRadius + 18) {
+                        if (Math.abs(this.angleDiff(angle, this.paddle.angle)) <= this.paddle.currentArc / 2 + 0.08) {
+                            this.collectRelic(rel);
+                            this.relics.splice(i, 1);
+                            continue;
+                        }
+                    }
+                    if (dist > this.arenaRadius + 40) {
+                        this.relics.splice(i, 1);
+                    }
+                }
+
+                // Update Particles
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.vx *= 0.96;
+                    p.vy *= 0.96;
+                    p.life -= dt;
+                    if (p.life <= 0) this.particles.splice(i, 1);
+                }
+
+                // Update Shockwaves
+                for (let i = this.shockwaves.length - 1; i >= 0; i--) {
+                    const sw = this.shockwaves[i];
+                    sw.r += (sw.maxR - sw.r) * dt * 6.5;
+                    sw.alpha -= dt * 1.8;
+                    if (sw.alpha <= 0.02) this.shockwaves.splice(i, 1);
+                }
+
+                // Check Wave Cleared
+                if (this.shards.length === 0 && this.state === 'PLAYING') {
+                    this.completeWave();
+                }
+
+                this.updateHUD();
+            }
+
+            checkShardCollisions(ball) {
+                const rx = ball.x - this.cx;
+                const ry = ball.y - this.cy;
+                const dist = Math.hypot(rx, ry);
+                const ballAngle = Math.atan2(ry, rx);
+
+                for (let i = this.shards.length - 1; i >= 0; i--) {
+                    const s = this.shards[i];
+                    const innerR = s.radiusNorm * this.arenaRadius;
+                    const outerR = (s.radiusNorm + s.thicknessNorm) * this.arenaRadius;
+
+                    if (dist + ball.radius >= innerR && dist - ball.radius <= outerR) {
+                        const midAngle = this.normalizeAngle(s.startAngle + s.arcSpan / 2);
+                        const diff = Math.abs(this.angleDiff(ballAngle, midAngle));
+                        const angularPadding = ball.radius / Math.max(dist, 20);
+
+                        if (diff <= s.arcSpan / 2 + angularPadding) {
+                            // Collision detected!
+                            if (this.activePowerups.pierce <= 0) {
+                                // Reflect radially or tangentially
+                                const midR = (innerR + outerR) / 2;
+                                const nx = rx / (dist || 1);
+                                const ny = ry / (dist || 1);
+
+                                if (dist < midR) {
+                                    ball.x = this.cx + nx * (innerR - ball.radius - 1);
+                                    ball.y = this.cy + ny * (innerR - ball.radius - 1);
+                                } else {
+                                    ball.x = this.cx + nx * (outerR + ball.radius + 1);
+                                    ball.y = this.cy + ny * (outerR + ball.radius + 1);
+                                }
+
+                                const dot = ball.vx * nx + ball.vy * ny;
+                                ball.vx -= 2 * dot * nx;
+                                ball.vy -= 2 * dot * ny;
+                            }
+
+                            this.damageShard(i, ball.x, ball.y);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            damageShard(index, hitX, hitY, isChain = false) {
+                const s = this.shards[index];
+                if (!s) return;
+
+                s.hp--;
+                s.hitFlash = 1.0;
+
+                if (!isChain) {
+                    this.combo++;
+                    this.comboMult = Math.min(16, 1 + Math.floor(this.combo / 4));
+                }
+
+                const midAngle = s.startAngle + s.arcSpan / 2;
+                const midR = (s.radiusNorm + s.thicknessNorm / 2) * this.arenaRadius;
+                const sx = hitX || (this.cx + Math.cos(midAngle) * midR);
+                const sy = hitY || (this.cy + Math.sin(midAngle) * midR);
+
+                if (s.hp <= 0) {
+                    const color = s.color;
+                    this.shards.splice(index, 1);
+
+                    // Score calculation
+                    const pts = Math.round(100 * this.comboMult * this.upgrades.scoreMult);
+                    this.score += pts;
+                    if (this.score > this.highScore) {
+                        this.highScore = this.score;
+                        localStorage.setItem('graviton_highscore', String(this.highScore));
+                    }
+
+                    // Spawn glowing polygon sparks
+                    this.spawnParticles(sx, sy, color, 20);
+                    audio.playShardHit(this.combo, true);
+
+                    this.shakeIntensity = Math.min(10, this.shakeIntensity + 3.5);
+                    if (!isChain) this.hitStopTimer = 0.022; // 22ms crisp hit-stop
+
+                    // Chance to drop a floating Power-up Relic
+                    if (Math.random() < 0.16) {
+                        this.spawnRelic(sx, sy);
+                    }
+
+                    // Supernova Explosive Chain Reaction
+                    if (!isChain && Math.random() < this.upgrades.explosiveChance) {
+                        this.shockwaves.push({
+                            x: sx,
+                            y: sy,
+                            r: 6,
+                            maxR: 85,
+                            color: '#ffbe0b',
+                            alpha: 0.95
+                        });
+                        for (let j = this.shards.length - 1; j >= 0; j--) {
+                            const other = this.shards[j];
+                            const oa = other.startAngle + other.arcSpan / 2;
+                            const or = (other.radiusNorm + other.thicknessNorm / 2) * this.arenaRadius;
+                            const ox = this.cx + Math.cos(oa) * or;
+                            const oy = this.cy + Math.sin(oa) * or;
+                            if (Math.hypot(ox - sx, oy - sy) < 82) {
+                                this.damageShard(j, ox, oy, true);
+                            }
+                        }
+                    }
+                } else {
+                    this.spawnParticles(sx, sy, '#ffffff', 8);
+                    audio.playShardHit(this.combo, false);
+                }
+            }
+
+            spawnRelic(x, y) {
+                const types = [
+                    { type: 'SPLIT', label: 'BINARY SPLIT', color: '#ff007f' },
+                    { type: 'PIERCE', label: 'SUPERNOVA PIERCE', color: '#ffbe0b' },
+                    { type: 'WIDE', label: 'ARC EXPAND', color: '#00f3ff' },
+                    { type: 'SLOW', label: 'TIME DILATION', color: '#a855f7' }
+                ];
+                const pick = types[Math.floor(Math.random() * types.length)];
+                const angleOut = Math.atan2(y - this.cy, x - this.cx);
+                const speed = this.arenaRadius * 0.36;
+
+                this.relics.push({
+                    x,
+                    y,
+                    vx: Math.cos(angleOut) * speed,
+                    vy: Math.sin(angleOut) * speed,
+                    type: pick.type,
+                    label: pick.label,
+                    color: pick.color,
+                    rot: 0
+                });
+            }
+
+            collectRelic(rel) {
+                audio.playPowerup();
+                this.score += 250 * this.comboMult;
+                this.spawnParticles(rel.x, rel.y, rel.color, 18);
+
+                if (rel.type === 'SPLIT') {
+                    const source = this.balls[0];
+                    if (source && this.balls.length < 6) {
+                        for (let k = -1; k <= 1; k += 2) {
+                            const baseAngle = Math.atan2(source.vy, source.vx) + k * 0.35;
+                            const spd = Math.hypot(source.vx, source.vy) || this.arenaRadius;
+                            this.balls.push({
+                                x: source.x,
+                                y: source.y,
+                                vx: Math.cos(baseAngle) * spd,
+                                vy: Math.sin(baseAngle) * spd,
+                                radius: 6.5,
+                                attached: false,
+                                offsetAngle: 0,
+                                trail: []
+                            });
+                        }
+                    }
+                } else if (rel.type === 'PIERCE') {
+                    this.activePowerups.pierce = 6.5;
+                } else if (rel.type === 'WIDE') {
+                    this.activePowerups.wide = 9.0;
+                } else if (rel.type === 'SLOW') {
+                    this.activePowerups.slow = 7.5;
+                }
+                this.renderPowerupPills();
+            }
+
+            renderPowerupPills() {
+                const container = document.getElementById('powerup-container');
+                container.innerHTML = '';
+                const defs = [
+                    { key: 'pierce', name: 'SUPERNOVA PIERCE', color: 'border-amber-400 text-amber-300 bg-amber-500/10' },
+                    { key: 'wide', name: 'OVERDRIVE ARC', color: 'border-cyan-400 text-cyan-300 bg-cyan-500/10' },
+                    { key: 'slow', name: 'TIME DILATION', color: 'border-purple-400 text-purple-300 bg-purple-500/10' }
+                ];
+                defs.forEach(d => {
+                    if (this.activePowerups[d.key] > 0) {
+                        const pill = document.createElement('div');
+                        pill.className = `px-3 py-1 rounded-lg border text-[11px] font-display font-bold tracking-wider backdrop-blur-md ${d.color}`;
+                        pill.textContent = `${d.name} (${Math.ceil(this.activePowerups[d.key])}s)`;
+                        container.appendChild(pill);
+                    }
+                });
+            }
+
+            spawnParticles(x, y, color, count = 15) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 210 + 40;
+                    const life = Math.random() * 0.45 + 0.25;
+                    this.particles.push({
+                        x,
+                        y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        size: Math.random() * 3.5 + 1.5,
+                        color,
+                        life,
+                        maxLife: life
+                    });
+                }
+            }
+
+            resetCombo() {
+                this.combo = 0;
+                this.comboMult = 1;
+            }
+
+            completeWave() {
+                audio.playWaveClear();
+                this.wave++;
+                this.gravityActive = false;
+
+                if (this.mode === 'ARCADE') {
+                    this.state = 'UPGRADE';
+                    this.showUpgradeSelection();
+                } else {
+                    this.setupWave(this.wave);
+                }
+            }
+
+            showUpgradeSelection() {
+                const overlay = document.getElementById('overlay-upgrade');
+                const container = document.getElementById('upgrade-cards-container');
+                container.innerHTML = '';
+
+                // Shuffle and pick 3 upgrades
+                const shuffled = [...UPGRADE_POOL].sort(() => Math.random() - 0.5).slice(0, 3);
+
+                shuffled.forEach(upg => {
+                    const card = document.createElement('button');
+                    card.className = 'glass-card p-5 rounded-2xl flex flex-col justify-between text-left cursor-pointer group';
+                    card.innerHTML = `
+                        <div>
+                            <div class="w-8 h-1.5 rounded-full mb-3" style="background:${upg.color}; box-shadow: 0 0 10px ${upg.color}"></div>
+                            <h3 class="font-display text-sm sm:text-base font-bold text-white group-hover:text-cyan-300 transition mb-2">${upg.title}</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed">${upg.desc}</p>
+                        </div>
+                        <div class="mt-5 pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] font-display font-bold text-cyan-400">
+                            <span>INSTALL MODULE</span>
+                            <span>→</span>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => {
+                        upg.apply(this);
+                        audio.playPowerup();
+                        overlay.classList.add('hidden');
+                        overlay.classList.remove('flex');
+                        this.setupWave(this.wave);
+                        this.state = 'PLAYING';
+                        this.updateHUD();
+                    });
+                    container.appendChild(card);
+                });
+
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+            }
+
+            triggerGameOver() {
+                this.state = 'GAMEOVER';
+                this.gravityActive = false;
+                audio.setGravityModulation(false);
+
+                document.getElementById('go-wave').textContent = this.wave;
+                document.getElementById('go-score').textContent = this.score.toLocaleString();
+                document.getElementById('go-high').textContent = this.highScore.toLocaleString();
+
+                const over = document.getElementById('overlay-gameover');
+                over.classList.remove('hidden');
+                over.classList.add('flex');
+            }
+
+            updateHUD() {
+                document.getElementById('hud-score').textContent = String(this.score).padStart(6, '0');
+                document.getElementById('hud-highscore').textContent = String(this.highScore).padStart(6, '0');
+                document.getElementById('hud-wave').textContent = this.wave;
+
+                const comboEl = document.getElementById('hud-combo');
+                comboEl.textContent = `${this.comboMult}x`;
+
+                const livesLabel = document.getElementById('hud-lives-label');
+                if (this.mode === 'ZEN') {
+                    livesLabel.innerHTML = `SHIELD: <strong class="text-emerald-400 font-mono">∞ ZEN</strong>`;
+                } else {
+                    livesLabel.innerHTML = `SHIELDS: <strong class="text-amber-400 font-mono">${this.lives}</strong>`;
+                }
+
+                // Mode button indicator
+                const modeText = document.getElementById('mode-text');
+                const modeInd = document.getElementById('mode-indicator');
+                modeText.textContent = this.mode;
+                modeInd.className = this.mode === 'ARCADE'
+                    ? 'w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f3ff]'
+                    : 'w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_#ffbe0b]';
+
+                // Energy bars
+                const gravPct = Math.round(this.gravityEnergy);
+                document.getElementById('hud-grav-pct').textContent = `${gravPct}%`;
+                document.getElementById('bar-gravity').style.width = `${gravPct}%`;
+
+                const dashReady = this.paddle.dashCooldown <= 0;
+                const dashPct = dashReady ? 100 : Math.round((1 - this.paddle.dashCooldown / 2.4) * 100);
+                document.getElementById('hud-dash-status').textContent = dashReady ? 'READY' : `${this.paddle.dashCooldown.toFixed(1)}s`;
+                document.getElementById('bar-dash').style.width = `${dashPct}%`;
+            }
+
+            // --- 3. RENDER PIPELINE ---
+            draw() {
+                ctx.save();
+
+                // Background Void clear
+                ctx.fillStyle = '#07080d';
+                ctx.fillRect(0, 0, this.width, this.height);
+
+                // Camera Shake Offset
+                if (this.shakeIntensity > 0) {
+                    const sx = (Math.random() - 0.5) * this.shakeIntensity;
+                    const sy = (Math.random() - 0.5) * this.shakeIntensity;
+                    ctx.translate(sx, sy);
+                }
+
+                // 1. Drifting Starfield
+                for (const s of this.stars) {
+                    const r = s.distRatio * Math.max(this.width, this.height) * 0.6;
+                    const x = this.cx + Math.cos(s.angle) * r;
+                    const y = this.cy + Math.sin(s.angle) * r;
+                    ctx.fillStyle = `rgba(226, 232, 240, ${s.alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, s.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // 2. Sacred Geometry Concentric Orbital Guide Rings
+                ctx.lineWidth = 1;
+                for (let r = 0.25; r <= 1.0; r += 0.25) {
+                    ctx.strokeStyle = r === 1.0
+                        ? (this.mode === 'ZEN' ? 'rgba(255, 190, 11, 0.28)' : 'rgba(0, 243, 255, 0.22)')
+                        : 'rgba(148, 163, 184, 0.07)';
+                    ctx.beginPath();
+                    ctx.arc(this.cx, this.cy, this.arenaRadius * r, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Crosshair axis lines
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.04)';
+                ctx.beginPath();
+                ctx.moveTo(this.cx - this.arenaRadius, this.cy);
+                ctx.lineTo(this.cx + this.arenaRadius, this.cy);
+                ctx.moveTo(this.cx, this.cy - this.arenaRadius);
+                ctx.lineTo(this.cx, this.cy + this.arenaRadius);
+                ctx.stroke();
+
+                // 3. Central Singularity Core & Gravity Well Waves
+                const isPulling = this.gravityActive && this.gravityEnergy > 1;
+                const coreGlowRadius = this.coreRadius * (isPulling ? 2.8 : 1.7) + Math.sin(this.corePulsePhase) * 4;
+
+                const grad = ctx.createRadialGradient(this.cx, this.cy, 2, this.cx, this.cy, coreGlowRadius);
+                if (isPulling) {
+                    grad.addColorStop(0, '#ffffff');
+                    grad.addColorStop(0.35, '#00f3ff');
+                    grad.addColorStop(0.7, 'rgba(168, 85, 247, 0.45)');
+                    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                } else {
+                    grad.addColorStop(0, '#e2e8f0');
+                    grad.addColorStop(0.3, 'rgba(168, 85, 247, 0.5)');
+                    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                }
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(this.cx, this.cy, coreGlowRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Active Gravity Inward Ripple Ring
+                if (isPulling) {
+                    const rippleR = ((1 - (this.corePulsePhase % 1)) * this.arenaRadius * 0.55) + this.coreRadius;
+                    ctx.strokeStyle = 'rgba(0, 243, 255, 0.35)';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(this.cx, this.cy, rippleR, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Event Horizon Black Core
+                ctx.fillStyle = '#05050a';
+                ctx.strokeStyle = isPulling ? '#00f3ff' : '#a855f7';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.cx, this.cy, this.coreRadius * 0.72, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // 4. Crystalline Shards (Polar Arc Bricks)
+                for (const s of this.shards) {
+                    const innerR = s.radiusNorm * this.arenaRadius;
+                    const outerR = (s.radiusNorm + s.thicknessNorm) * this.arenaRadius;
+                    const endAngle = s.startAngle + s.arcSpan;
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(this.cx, this.cy, outerR, s.startAngle, endAngle, false);
+                    ctx.arc(this.cx, this.cy, innerR, endAngle, s.startAngle, true);
+                    ctx.closePath();
+
+                    ctx.fillStyle = s.hitFlash > 0 ? '#ffffff' : s.color;
+                    ctx.shadowColor = s.color;
+                    ctx.shadowBlur = s.hp > 1 ? 14 : 8;
+                    ctx.globalAlpha = s.hp > 1 ? 0.92 : 0.78;
+                    ctx.fill();
+
+                    ctx.lineWidth = s.hp > 1 ? 2 : 1;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // 5. Floating Power-Up Relics
+                for (const rel of this.relics) {
+                    ctx.save();
+                    ctx.translate(rel.x, rel.y);
+                    ctx.rotate(rel.rot);
+                    ctx.shadowColor = rel.color;
+                    ctx.shadowBlur = 12;
+                    ctx.strokeStyle = rel.color;
+                    ctx.fillStyle = '#07080d';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -9);
+                    ctx.lineTo(9, 0);
+                    ctx.lineTo(0, 9);
+                    ctx.lineTo(-9, 0);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // 6. Player Orbital Shield (Arc Paddle)
+                const halfArc = this.paddle.currentArc / 2;
+                const pStart = this.paddle.angle - halfArc;
+                const pEnd = this.paddle.angle + halfArc;
+                const isBoosted = this.paddle.dashTimer > 0;
+                const paddleColor = isBoosted ? '#ff007f' : '#00f3ff';
+
+                ctx.save();
+                ctx.shadowColor = paddleColor;
+                ctx.shadowBlur = isBoosted ? 24 : 15;
+                ctx.strokeStyle = paddleColor;
+                ctx.lineWidth = isBoosted ? 10 : 7;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.arc(this.cx, this.cy, this.arenaRadius, pStart, pEnd);
+                ctx.stroke();
+
+                // Bright inner filament
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                ctx.arc(this.cx, this.cy, this.arenaRadius, pStart + 0.02, pEnd - 0.02);
+                ctx.stroke();
+                ctx.restore();
+
+                // 7. Energy Orbs & Ribbon Trails
+                for (const b of this.balls) {
+                    const orbColor = this.activePowerups.pierce > 0
+                        ? '#ffbe0b'
+                        : (isPulling ? '#a855f7' : '#00f3ff');
+
+                    // Draw tapering ribbon trail
+                    if (b.trail.length > 1) {
+                        for (let t = 0; t < b.trail.length - 1; t++) {
+                            const ratio = (t + 1) / b.trail.length;
+                            ctx.strokeStyle = orbColor;
+                            ctx.globalAlpha = ratio * 0.55;
+                            ctx.lineWidth = b.radius * 1.7 * ratio;
+                            ctx.lineCap = 'round';
+                            ctx.beginPath();
+                            ctx.moveTo(b.trail[t].x, b.trail[t].y);
+                            ctx.lineTo(b.trail[t + 1].x, b.trail[t + 1].y);
+                            ctx.stroke();
+                        }
+                        ctx.globalAlpha = 1;
+                    }
+
+                    // Draw Orb
+                    ctx.save();
+                    ctx.shadowColor = orbColor;
+                    ctx.shadowBlur = 16;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+
+                    // Aim guide if ball is attached to paddle
+                    if (b.attached && this.state === 'PLAYING') {
+                        const aimAngle = this.paddle.angle + Math.PI;
+                        ctx.save();
+                        ctx.setLineDash([4, 6]);
+                        ctx.strokeStyle = 'rgba(0, 243, 255, 0.45)';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.moveTo(b.x, b.y);
+                        ctx.lineTo(b.x + Math.cos(aimAngle) * 75, b.y + Math.sin(aimAngle) * 75);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+
+                // 8. Shockwaves
+                for (const sw of this.shockwaves) {
+                    ctx.save();
+                    ctx.strokeStyle = sw.color;
+                    ctx.globalAlpha = Math.max(0, sw.alpha);
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // 9. Additive Glowing Particles
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                for (const p of this.particles) {
+                    const alpha = Math.max(0, p.life / p.maxLife);
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = alpha;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+
+                ctx.restore();
+            }
+        }
+
+        // --- 4. INITIALIZE & START MAIN GAME LOOP ---
+        window.onload = function () {
+            const game = new GravitonGame();
+            window.__game = game;
+            let lastTime = performance.now();
+
+            function gameLoop(now) {
+                const dt = Math.min((now - lastTime) / 1000, 0.05);
+                lastTime = now;
+
+                game.update(dt);
+                game.draw();
+
+                requestAnimationFrame(gameLoop);
+            }
+
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
